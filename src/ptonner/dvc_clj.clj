@@ -4,6 +4,45 @@
             [clojure.string :as str]
             [babashka.fs :as fs]))
 
+;; NOTE: only supporting git-based project for now
+(defn git-root? [p] (fs/exists? (fs/path p ".git")))
+
+(defn project-root
+  "Find the project root of path, if it exists"
+  ([] (project-root ""))
+  ([f]
+   (loop [p (fs/absolutize f)]
+     (when p (if (git-root? p) p (recur (fs/parent p)))))))
+
+(def read-dvc "Read a .dvc file" (comp yaml/parse-string slurp))
+
+(comment (:outs (read-dvc "/tmp/dvc-test/abc.txt.dvc")))
+
+(defn- f-in-dot-dvc?
+  [f ddvc]
+  (let [cfg (read-dvc ddvc)
+        wdir ;; (fs/absolutize (fs/parent ddvc))
+        (fs/path (or (:wdir cfg) "."))]
+    ;; NOTE: can never succeed currently
+    (some (constantly false) (:outs cfg))))
+
+(defn dot-dvc
+  [f]
+  "Find the .dvc file for `f`"
+  (if-let [root (project-root f)]
+    (loop [p (fs/absolutize f)]
+      (if (fs/directory? p) (let [ddvc (fs/match (str p) "glob:*.dvc")])))
+    (throw (AssertionError. "no project root"))))
+
+
+(defn dvc-out
+  [f opts]
+  (let [{:keys [wdir], :or {wdir (fs/path ".")}} opts
+        path (fs/path f)
+        relpath (fs/relativize wdir path)])
+  ;; {:path}
+)
+
 (defn sym->str
   [sym]
   "Convert symbol to a string that can be resolved"
@@ -18,33 +57,6 @@
   (-> s
       symbol
       resolve))
-
-(comment yaml/parse-stream
-         (-> "/tmp/dvc-test/abc.txt.dvc"
-             slurp
-             yaml/parse-string
-             (assoc :meta {::read (str (symbol (resolve 'slurp)))})
-             yaml/generate-string
-             yaml/parse-string
-             (get-in [:meta ::read])
-             symbol
-             resolve)
-         (require '[clojure.string :as str])
-         ((-> {:a (symbol (resolve 'str/split))}
-              str
-              clojure.edn/read-string
-              :a
-              resolve)
-          "a b c"
-          #" ")
-         (clojure.edn/read-string (str))
-         (-> (resolve 'yaml/parse-stream)
-             symbol
-             ;; (.. -ns)
-         ))
-
-;; (defn- to-meta-option [key val]
-;;   (str "--meta " (str key) "=" val))
 
 (defn- add-dvc-meta
   [f m]
@@ -68,7 +80,7 @@
 ;; - add an existing directory
 ;; - add a collection of things
 
-(defn add
+(defn add!
   [{:keys [target targets opt]}]
   (let [targets (or targets [target])
         opt (or opt {})]
@@ -77,6 +89,7 @@
     (apply shell opt "dvc" "add" targets)
     ;; Add metadata
     ;; NOTE: this is broken b/c it doesn't track :dir option
-    (doseq [t targets]
-      (add-dvc-meta (str t ".dvc")
-                    {::read (sym->str 'slurp), ::write (sym->str 'spit)}))))
+    ;; (doseq [t targets]
+    ;;   (add-dvc-meta (str t ".dvc")
+    ;;                 {::read (sym->str 'slurp), ::write (sym->str 'spit)}))
+  ))
