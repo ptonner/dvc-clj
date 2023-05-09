@@ -13,8 +13,9 @@
   [t]
   (fs/delete-tree dvc-clj-test-template-dir)
   (fs/create-dirs dvc-clj-test-template-dir)
-  (shell {:dir (str dvc-clj-test-template-dir)} "git init")
-  (shell {:dir (str dvc-clj-test-template-dir)} "dvc init")
+  (let [cfg {:dir (str dvc-clj-test-template-dir), :out :string, :err :string}]
+    (shell cfg "git init")
+    (shell cfg "dvc init"))
   (t)
   (fs/delete-tree dvc-clj-test-template-dir))
 
@@ -29,11 +30,7 @@
 (defn- init-project!
   "Initialize a project at location `dir` with `files` copied over"
   [dir & files]
-  ;; start from empty directoy
-  (fs/delete-tree dir)
-  (fs/create-dirs dir)
-  (shell {:dir (str dir)} "git init")
-  (shell {:dir (str dir)} "dvc init")
+  (copy-template! dir)
   (doseq [f files] (fs/copy f dir)))
 
 (deftest find-root
