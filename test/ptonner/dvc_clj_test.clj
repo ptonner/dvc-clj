@@ -7,8 +7,10 @@
             [ptonner.dvc-clj :refer :all]))
 
 (def tmp-dir (fs/path "/" "tmp" "dvc-clj"))
+(prn tmp-dir)
 (fs/create-dirs tmp-dir)
 (def template-dir (fs/absolutize (fs/create-temp-dir {:path tmp-dir})))
+(prn template-dir)
 
 (defn- init-template!
   "Create a initial project to use as a template for tests"
