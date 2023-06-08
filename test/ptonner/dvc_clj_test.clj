@@ -46,7 +46,8 @@
    "DVC files added"
    (fs/with-temp-dir [tmp-dir {:path tmp-dir}]
                      (init-project! tmp-dir (io/resource "abc.txt"))
-                     (add! {:opt {:dir (str tmp-dir), :out :string, :err :out},
+                     (add! {:opt {:out :string, :err :out},
+                            :dir (str tmp-dir),
                             :target "abc.txt"})
                      (is (fs/exists? (fs/path tmp-dir "abc.txt.dvc"))))))
 

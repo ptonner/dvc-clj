@@ -81,15 +81,14 @@
 ;; - add a collection of things
 
 (defn add!
-  [{:keys [target targets opt]}]
+  [{:keys [target targets dir]}]
   (let [targets (or targets [target])
-        opt (or opt {})]
-    ;; TODO: set default seder operation
-    ;; TODO: load target into memory and return it
-    (apply shell opt "dvc" "add" targets)
+        dir (or dir ".")]
+    (apply shell {:out :string, :err :out, :dir dir} "dvc" "add" targets)
     ;; Add metadata
+    ;; TODO: set default seder operation
     ;; NOTE: this is broken b/c it doesn't track :dir option
-    ;; (doseq [t targets]
-    ;;   (add-dvc-meta (str t ".dvc")
-    ;;                 {::read (sym->str 'slurp), ::write (sym->str 'spit)}))
+    (doseq [t targets]
+      (add-dvc-meta (str (fs/path dir (str t ".dvc"))) {::group :default}))
+    ;; TODO: load target into memory and return it
   ))
